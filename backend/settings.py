@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from pymongo import MongoClient
+import certifi
 
 MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 MONGO_DB_NAME = "workshop"  # Change this to your actual database name
@@ -86,16 +87,18 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Connect to MongoDB Atlas
+MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+db = client["workshop"]  # Change this to your database name
+
+# Django Database Settings (MongoDB doesn't use Django's ORM)
 DATABASES = {
-    'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'workshop',  # Change this to your MongoDB database name
-        'CLIENT': {
-            'host': 'mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',  # Ensure MongoDB is running
-        }
+    "default": {
+        "ENGINE": "django.db.backends.dummy",  # MongoDB doesn't use Django ORM
     }
 }
-
 
 
 # Password validation

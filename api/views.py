@@ -8,13 +8,18 @@ from django.conf import settings
 import re
 from bson.objectid import ObjectId
 from django.views.decorators.csrf import csrf_exempt
+import certifi
 
+# ✅ Get MongoDB URI from settings.py
+MONGO_URI = getattr(settings, "MONGO_URI", "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
-# ✅ Connect to MongoDB
-client = MongoClient(settings.DATABASES['default']['CLIENT']['host'])
-db = client['workshop']
-users_collection = db['users']
-tasks_collection = db['tasks']
+# ✅ Secure connection to MongoDB Atlas
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+db = client["workshop"]  # Change this to your database name
+
+# ✅ Collections
+users_collection = db["users"]
+tasks_collection = db["tasks"]
 parts_collection = db["vehicle_parts"]
 
 # ✅ Signup View
