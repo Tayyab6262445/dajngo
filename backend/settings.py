@@ -89,11 +89,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Connect to MongoDB Atlas
-# MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-import os
-
-MONGO_URI = os.getenv("MONGO_URI")
-
+MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["workshop"]  # Change this to your database name
