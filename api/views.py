@@ -87,6 +87,7 @@ def signup(request):
                 "permanent_address": permanent_address,
                 "city": city,
                 "postal_code": postal_code,
+                "permanent_address": permanent_address,
                 "country": country,
                 "role": role  # ✅ Adding role field
             }
@@ -130,6 +131,11 @@ def signin(request):
                 "username": user["username"],
                 "email": user["email"],
                 "role":user["role"],
+                "dob":user["dob"],
+                "city":user["city"],
+                "present_address":user["present_address"],
+                "postal_code":user["postal_code"],
+                "userId":str(user["_id"]),
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token expires in 2 hours
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
