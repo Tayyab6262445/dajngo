@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from pymongo import MongoClient
 import certifi
+import os
+
 
 MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 MONGO_DB_NAME = "workshop"  # Change this to your actual database name
@@ -88,11 +90,26 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Connect to MongoDB Atlas
-MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-db = client["workshop"]  # Change this to your database name
+
+
+MONGO_URI = os.getenv("MONGO_URI")
+
+if not MONGO_URI:
+    raise ValueError("MONGO_URI is not set in environment variables!")
+
+try:
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000)
+    db = client["workshop"]  # Change this to your actual database name
+    client.admin.command("ping")  # Test MongoDB connection
+    print("Connected to MongoDB successfully!")
+except Exception as e:
+    print(f"MongoDB Connection Error: {e}")
+# Connect to MongoDB Atlas
+# MONGO_URI = "mongodb+srv://tayyab:angel123@cluster0.x7zaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+# db = client["workshop"]  # Change this to your database name
 
 # Django Database Settings (MongoDB doesn't use Django's ORM)
 DATABASES = {
