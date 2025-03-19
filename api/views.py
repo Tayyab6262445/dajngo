@@ -129,6 +129,7 @@ def signin(request):
             payload = {
                 "username": user["username"],
                 "email": user["email"],
+                "role":user["role"],
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token expires in 2 hours
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
