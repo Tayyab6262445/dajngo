@@ -233,142 +233,6 @@ def get_all_users(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-# @csrf_exempt
-# def create_task(request):
-#     if request.method == "POST":
-#         try:
-#             data = json.loads(request.body)
-
-#             # Extract task details
-#             vehicle_name = data.get("vehicle_name")
-#             vehicle_number = data.get("vehicle_number")
-#             customer_name = data.get("customer_name")
-#             check_in_time = data.get("check_in_time")
-#             task_description = data.get("task_description", "")  # Default to empty if not provided
-#             assigned_user_id = data.get("assigned_user_id")  # User ID from MongoDB
-
-#             # ✅ Validate required fields
-#             required_fields = ["vehicle_name", "vehicle_number", "customer_name", "check_in_time", "assigned_user_id"]
-#             for field in required_fields:
-#                 if not data.get(field):
-#                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
-
-#             # ✅ Convert check-in time to datetime format
-#             try:
-#                 check_in_time = datetime.strptime(check_in_time, "%Y-%m-%dT%H:%M:%S")
-#             except ValueError:
-#                 return JsonResponse({"error": "Invalid check-in time format. Use YYYY-MM-DDTHH:MM:SS"}, status=400)
-
-#             # ✅ Check if assigned_user_id is a valid ObjectId
-#             if not ObjectId.is_valid(assigned_user_id):
-#                 return JsonResponse({"error": "Invalid user ID format"}, status=400)
-
-#             # ✅ Find assigned user in MongoDB
-#             assigned_user = users_collection.find_one({"_id": ObjectId(assigned_user_id)}, {"_id": 1, "username": 1, "email": 1})
-#             if not assigned_user:
-#                 return JsonResponse({"error": "User not found"}, status=400)
-
-#             # ✅ Create task document
-#             task = {
-#                 "vehicle_name": vehicle_name,
-#                 "vehicle_number": vehicle_number,
-#                 "customer_name": customer_name,
-#                 "check_in_time": check_in_time,
-#                 "task_description": task_description,
-#                 "task_status": "pending",  # Default task status
-#                 "assigned_user_id": assigned_user["_id"]  # Store user ID
-#             }
-
-#             # ✅ Insert into MongoDB
-#             result = tasks_collection.insert_one(task)
-
-#             return JsonResponse({
-#                 "message": "Task created successfully!",
-#                 "task_id": str(result.inserted_id),
-#                 "task_status": "pending",
-#                 "assigned_user": {
-#                     "user_id": str(assigned_user["_id"]),
-#                     "username": assigned_user["username"],
-#                     "email": assigned_user["email"]
-#                 }
-#             }, status=201)
-
-#         except json.JSONDecodeError:
-#             return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-#     return JsonResponse({"error": "Method not allowed"}, status=405)
-
-
-
-
-## with parts functon
-# @csrf_exempt
-# def create_task(request):
-#     if request.method == "POST":
-#         try:
-#             data = json.loads(request.body)
-
-#             # Extract task details
-#             vehicle_name = data.get("vehicle_name")
-#             vehicle_number = data.get("vehicle_number")
-#             customer_name = data.get("customer_name")
-#             check_in_time = data.get("check_in_time")
-#             task_description = data.get("task_description", "")
-#             assigned_user_id = data.get("assigned_user_id")
-
-#             # ✅ Validate required fields
-#             required_fields = ["vehicle_name", "vehicle_number", "customer_name", "check_in_time", "assigned_user_id"]
-#             for field in required_fields:
-#                 if not data.get(field):
-#                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
-
-#             # ✅ Convert check-in time to datetime format
-#             try:
-#                 check_in_time = datetime.strptime(check_in_time, "%Y-%m-%dT%H:%M:%S")
-#             except ValueError:
-#                 return JsonResponse({"error": "Invalid check-in time format. Use YYYY-MM-DDTHH:MM:SS"}, status=400)
-
-#             # ✅ Check if assigned_user_id is a valid ObjectId
-#             if not ObjectId.is_valid(assigned_user_id):
-#                 return JsonResponse({"error": "Invalid user ID format"}, status=400)
-
-#             # ✅ Find assigned user in MongoDB
-#             assigned_user = users_collection.find_one({"_id": ObjectId(assigned_user_id)}, {"_id": 1, "username": 1, "email": 1})
-#             if not assigned_user:
-#                 return JsonResponse({"error": "User not found"}, status=400)
-
-#             # ✅ Create task document with an empty "parts" array
-#             task = {
-#                 "vehicle_name": vehicle_name,
-#                 "vehicle_number": vehicle_number,
-#                 "customer_name": customer_name,
-#                 "check_in_time": check_in_time,
-#                 "task_description": task_description,
-#                 "task_status": "pending",
-#                 "assigned_user_id": assigned_user["_id"],
-#                 "parts": []  # ✅ New field for storing parts
-#             }
-
-#             # ✅ Insert into MongoDB
-#             result = tasks_collection.insert_one(task)
-
-#             return JsonResponse({
-#                 "message": "Task created successfully!",
-#                 "task_id": str(result.inserted_id),
-#                 "task_status": "pending",
-#                 "assigned_user": {
-#                     "user_id": str(assigned_user["_id"]),
-#                     "username": assigned_user["username"],
-#                     "email": assigned_user["email"]
-#                 },
-#                 "parts": []
-#             }, status=201)
-
-#         except json.JSONDecodeError:
-#             return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-#     return JsonResponse({"error": "Method not allowed"}, status=405)
-
 
 @csrf_exempt
 def create_task(request):
@@ -642,7 +506,7 @@ def update_task_status(request, task_id):
 
 ## task fetch for the specific user
 from bson import ObjectId
-
+# get all tasks of a user
 def get_tasks_by_user(request, user_id):
     if request.method == "GET":
         try:
@@ -658,18 +522,35 @@ def get_tasks_by_user(request, user_id):
             if not tasks:
                 return JsonResponse({"message": "No tasks found for this user"}, status=404)
 
-            # Convert ObjectId fields to string for JSON response
+            # Initialize counters
+            pending_count = 0
+            completed_count = 0
+
+            # Convert ObjectId fields to string and count status
             for task in tasks:
                 task["_id"] = str(task["_id"])
                 task["assigned_user_id"] = str(task["assigned_user_id"])  # Convert assigned user ID to string
+                
+                # Count pending and completed tasks
+                if task["task_status"].lower() == "pending":
+                    pending_count += 1
+                elif task["task_status"].lower() == "completed":
+                    completed_count += 1
 
-            return JsonResponse(tasks, safe=False)
+            # Prepare response
+            response_data = {
+                "total_tasks": len(tasks),
+                "pending_tasks": pending_count,
+                "completed_tasks": completed_count,
+                "tasks": tasks
+            }
+
+            return JsonResponse(response_data, safe=False)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
-
 
 ## fetch the single task by using the id of task
 def get_task_by_id(request, task_id):
