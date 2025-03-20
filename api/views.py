@@ -128,12 +128,16 @@ def signin(request):
 
             # ✅ Generate JWT token
             payload = {
+                "full_name": user["full_name"],
                 "username": user["username"],
                 "email": user["email"],
                 "role":user["role"],
                 "dob":user["dob"],
+                "password":user["password"],
                 "city":user["city"],
+                "country":user["country"],
                 "present_address":user["present_address"],
+                "permanent_address":user["permanent_address"],
                 "postal_code":user["postal_code"],
                 "userId":str(user["_id"]),
                 # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token expires in 2 hours
@@ -557,6 +561,70 @@ def get_tasks_by_user(request, user_id):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_pending_tasks_by_user(request, user_id):
+    if request.method == "GET":
+        try:
+            # ✅ Validate user_id
+            if not ObjectId.is_valid(user_id):
+                return JsonResponse({"error": "Invalid user ID format"}, status=400)
+
+            # ✅ Check if the user exists
+            user = users_collection.find_one({"_id": ObjectId(user_id)}, {"_id": 1})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # ✅ Fetch all pending tasks assigned to the user
+            pending_tasks = list(tasks_collection.find(
+                {"assigned_user_id": ObjectId(user_id), "task_status": "pending"},
+                {"_id": 1, "task_title": 1, "vehicle_name": 1, "vehicle_number": 1, "customer_name": 1, "check_in_time": 1, "task_description": 1}
+            ))
+
+            # ✅ Convert ObjectId to string for JSON response
+            for task in pending_tasks:
+                task["_id"] = str(task["_id"])
+                task["check_in_time"] = task["check_in_time"].isoformat()  # Convert datetime to string
+
+            return JsonResponse({"pending_tasks": pending_tasks}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def get_completed_tasks_by_user(request, user_id):
+    if request.method == "GET":
+        try:
+            # ✅ Validate user_id
+            if not ObjectId.is_valid(user_id):
+                return JsonResponse({"error": "Invalid user ID format"}, status=400)
+
+            # ✅ Check if the user exists
+            user = users_collection.find_one({"_id": ObjectId(user_id)}, {"_id": 1})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # ✅ Fetch all completed tasks assigned to the user
+            completed_tasks = list(tasks_collection.find(
+                {"assigned_user_id": ObjectId(user_id), "task_status": "completed"},
+                {"_id": 1, "task_title": 1, "vehicle_name": 1, "vehicle_number": 1, "customer_name": 1, "check_in_time": 1, "task_description": 1}
+            ))
+
+            # ✅ Convert ObjectId to string for JSON response
+            for task in completed_tasks:
+                task["_id"] = str(task["_id"])
+                task["check_in_time"] = task["check_in_time"].isoformat()  # Convert datetime to string
+
+            return JsonResponse({"completed_tasks": completed_tasks}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 ## fetch the single task by using the id of task
 def get_task_by_id(request, task_id):
