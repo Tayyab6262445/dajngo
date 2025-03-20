@@ -102,7 +102,7 @@ def signup(request):
 
 
 SECRET_KEY = "your_secret_key_here"  # Replace with a secure secret key
-
+from datetime import datetime
 @csrf_exempt
 def signin(request):
     if request.method == "POST":
@@ -136,7 +136,7 @@ def signin(request):
                 "present_address":user["present_address"],
                 "postal_code":user["postal_code"],
                 "userId":str(user["_id"]),
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token expires in 2 hours
+                # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token expires in 2 hours
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 

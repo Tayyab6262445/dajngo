@@ -7,19 +7,19 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/howto/deployment/wsgi/
 """
 
-# import os
+import os
 
-# from django.core.wsgi import get_wsgi_application
+from django.core.wsgi import get_wsgi_application
 
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
-# application = get_wsgi_application()
+application = get_wsgi_application()
 
 
 # for vercel deployment
-import os
-from django.core.wsgi import get_wsgi_application
+# import os
+# from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
+# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 
-app = get_wsgi_application()  # Change 'application' to 'app'
+# app = get_wsgi_application()  # Change 'application' to 'app'
