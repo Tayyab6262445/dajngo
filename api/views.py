@@ -232,7 +232,7 @@ def get_all_users(request):
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-
+from datetime import datetime
 
 @csrf_exempt
 def create_task(request):
@@ -241,6 +241,7 @@ def create_task(request):
             data = json.loads(request.body)
 
             # Extract task details
+            task_title = data.get("task_title")
             vehicle_name = data.get("vehicle_name")
             vehicle_number = data.get("vehicle_number")
             customer_name = data.get("customer_name")
@@ -249,7 +250,7 @@ def create_task(request):
             assigned_user_id = data.get("assigned_user_id")
 
             # Validate required fields
-            required_fields = ["vehicle_name", "vehicle_number", "customer_name", "check_in_time", "assigned_user_id"]
+            required_fields = ["task_title", "vehicle_name", "vehicle_number", "customer_name", "check_in_time", "assigned_user_id"]
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
@@ -271,6 +272,7 @@ def create_task(request):
 
             # Create task document with an empty 'task_parts' array
             task = {
+                "task_title": task_title,
                 "vehicle_name": vehicle_name,
                 "vehicle_number": vehicle_number,
                 "customer_name": customer_name,
@@ -287,6 +289,7 @@ def create_task(request):
             return JsonResponse({
                 "message": "Task created successfully!",
                 "task_id": str(result.inserted_id),
+                "task_title": task_title,
                 "task_status": "pending",
                 "assigned_user": {
                     "user_id": str(assigned_user["_id"]),
@@ -392,6 +395,7 @@ def get_user_tasks_with_parts(request, user_id):
                     "customer_name": task.get("customer_name"),
                     "check_in_time": task.get("check_in_time").strftime("%Y-%m-%d %H:%M:%S"),
                     "task_description": task.get("task_description", ""),
+                    "task_title": task.get("task_title", ""),
                     "task_status": task.get("task_status", "pending"),
                     "task_parts": task.get("task_parts", []),  # List of parts
                 })
@@ -434,6 +438,8 @@ def update_task(request, task_id):
 
             # ✅ Extract updated fields (only update provided fields)
             update_fields = {}
+            if "task_title" in data:
+                update_fields["task_title"] = data["task_title"]
             if "vehicle_name" in data:
                 update_fields["vehicle_name"] = data["vehicle_name"]
             if "vehicle_number" in data:

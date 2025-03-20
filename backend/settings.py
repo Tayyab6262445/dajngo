@@ -169,6 +169,7 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Adjust if your frontend runs on a different port
+    "https://rpm-lake.vercel.app",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
