@@ -185,12 +185,35 @@ def delete_user(request, user_id):
 
 
 
-# ✅ Fetch User Info
-def get_user(request, email):
-    user = users_collection.find_one({"email": email}, {"_id": 0})  # Exclude MongoDB `_id`
-    if user:
-        return JsonResponse(user, status=200)
-    return JsonResponse({"error": "User not found"}, status=404)
+# # ✅ Fetch User Info
+# def get_user(request, email):
+#     user = users_collection.find_one({"email": email}, {"_id": 0})  # Exclude MongoDB `_id`
+#     if user:
+#         return JsonResponse(user, status=200)
+#     return JsonResponse({"error": "User not found"}, status=404)
+@csrf_exempt
+def get_user_details(request, user_id):
+    if request.method == "GET":
+        try:
+            # Validate user_id format
+            if not ObjectId.is_valid(user_id):
+                return JsonResponse({"error": "Invalid user ID format"}, status=400)
+
+            # Fetch user from MongoDB
+            user = users_collection.find_one({"_id": ObjectId(user_id)}, {"password": 0})  # Exclude password
+
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Convert ObjectId to string
+            user["_id"] = str(user["_id"])
+
+            return JsonResponse({"user": user}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 # ✅ Update User Info
 @csrf_exempt

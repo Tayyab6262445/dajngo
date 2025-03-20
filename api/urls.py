@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import signup, signin, get_user, update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user
+from .views import signup, signin,  update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user,get_user_details
 
 urlpatterns = [
     path("signup/", signup, name="signup"),
     path("signin/", signin, name="signin"),
-    path("user/<str:email>/", get_user, name="get_user"),
+    # path("user/<str:email>/", get_user, name="get_user"),
+    path("user/<str:user_id>/", get_user_details, name="get_user_details"),
     path("user/<str:email>/update/", update_user, name="update_user"),
     path("users/", get_all_users, name="get_all_users"),
     path("tasks/create/", create_task, name="create_task"),
