@@ -22,8 +22,63 @@ parts_collection = db["vehicle_parts"]
 ## add the parts
 
 
-
+ 
 from datetime import datetime
+# @csrf_exempt
+# def add_vehicle_part(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+
+#             # Extract required fields
+#             part_name = data.get("part_name")
+#             part_number = data.get("part_number")
+#             vehicle_model = data.get("vehicle_model")
+#             price = data.get("price")
+#             orginal_price = data.get("orginal_price")
+#             stock_quantity = data.get("stock_quantity")
+#             company_name = data.get("company_name")  # New field
+#             added_on = datetime.utcnow()  # Current date & time in UTC
+
+#             # ✅ Validate required fields
+#             required_fields = ["part_name", "part_number", "vehicle_model", "price", "stock_quantity", "company_name","orginal_price"]
+#             for field in required_fields:
+#                 if not data.get(field):
+#                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
+
+#             # ✅ Check if the part already exists
+#             existing_part = parts_collection.find_one({"part_name": part_name, "vehicle_model": vehicle_model})
+#             if existing_part:
+#                 return JsonResponse({"error": "Part already exists for this vehicle model"}, status=400)
+
+#             # ✅ Create part document
+#             part = {
+#                 "part_name": part_name,
+#                 "part_number": part_number,
+#                 "vehicle_model": vehicle_model,
+#                 "price": price,
+#                 "orginal_price": orginal_price,
+#                 "stock_quantity": stock_quantity,
+#                 "company_name": company_name,
+#                 "added_on": added_on  # Store timestamp
+#             }
+
+#             # ✅ Insert into MongoDB
+#             result = parts_collection.insert_one(part)
+
+#             return JsonResponse({
+#                 "message": "Vehicle part added successfully!",
+#                 "part_id": str(result.inserted_id),
+#                 "company_name": company_name,
+#                 "added_on": added_on.strftime("%Y-%m-%d %H:%M:%S")  # Convert to string for response
+#             }, status=201)
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+#     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 @csrf_exempt
 def add_vehicle_part(request):
     if request.method == "POST":
@@ -35,15 +90,20 @@ def add_vehicle_part(request):
             part_number = data.get("part_number")
             vehicle_model = data.get("vehicle_model")
             price = data.get("price")
+            orginal_price = data.get("orginal_price")
             stock_quantity = data.get("stock_quantity")
-            company_name = data.get("company_name")  # New field
-            added_on = datetime.utcnow()  # Current date & time in UTC
+            company_name = data.get("company_name")
+            added_on = datetime.utcnow()
 
             # ✅ Validate required fields
-            required_fields = ["part_name", "part_number", "vehicle_model", "price", "stock_quantity", "company_name"]
+            required_fields = ["part_name", "part_number", "vehicle_model", "price", "stock_quantity", "company_name", "orginal_price"]
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
+
+            # ✅ Ensure price is greater than original_price
+            if price <= orginal_price:
+                return JsonResponse({"error": "Price must be greater than Original Price"}, status=400)
 
             # ✅ Check if the part already exists
             existing_part = parts_collection.find_one({"part_name": part_name, "vehicle_model": vehicle_model})
@@ -56,9 +116,10 @@ def add_vehicle_part(request):
                 "part_number": part_number,
                 "vehicle_model": vehicle_model,
                 "price": price,
+                "orginal_price": orginal_price,
                 "stock_quantity": stock_quantity,
                 "company_name": company_name,
-                "added_on": added_on  # Store timestamp
+                "added_on": added_on
             }
 
             # ✅ Insert into MongoDB
@@ -68,13 +129,15 @@ def add_vehicle_part(request):
                 "message": "Vehicle part added successfully!",
                 "part_id": str(result.inserted_id),
                 "company_name": company_name,
-                "added_on": added_on.strftime("%Y-%m-%d %H:%M:%S")  # Convert to string for response
+                "added_on": added_on.strftime("%Y-%m-%d %H:%M:%S")
             }, status=201)
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 
 
 ## delete part

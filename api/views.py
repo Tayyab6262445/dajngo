@@ -183,14 +183,7 @@ def delete_user(request, user_id):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-
-
-# # ✅ Fetch User Info
-# def get_user(request, email):
-#     user = users_collection.find_one({"email": email}, {"_id": 0})  # Exclude MongoDB `_id`
-#     if user:
-#         return JsonResponse(user, status=200)
-#     return JsonResponse({"error": "User not found"}, status=404)
+# get the  details ofuser by user id
 @csrf_exempt
 def get_user_details(request, user_id):
     if request.method == "GET":
@@ -397,47 +390,41 @@ def add_task_part(request, task_id):
             data = json.loads(request.body)
             part_id = data.get("part_id")
 
-            # Validate part_id
             if not part_id or not ObjectId.is_valid(part_id):
                 return JsonResponse({"error": "Invalid part ID format"}, status=400)
 
-            # Validate task_id
             if not ObjectId.is_valid(task_id):
                 return JsonResponse({"error": "Invalid task ID format"}, status=400)
 
-            # Find the task in MongoDB
             task = tasks_collection.find_one({"_id": ObjectId(task_id)})
             if not task:
                 return JsonResponse({"error": "Task not found"}, status=404)
 
-            # Find the part in the vehicle_parts collection
             part = db["vehicle_parts"].find_one({"_id": ObjectId(part_id)})
             if not part:
                 return JsonResponse({"error": "Part not found"}, status=404)
 
-            # Check if stock is available
             if part.get("stock_quantity", 0) <= 0:
                 return JsonResponse({"error": "Insufficient stock for this part"}, status=400)
 
-            # Update task document by adding the part
+            # Add part to task
             tasks_collection.update_one(
                 {"_id": ObjectId(task_id)},
                 {"$push": {"task_parts": {
                     "part_id": str(part["_id"]),
-                    "part_name": part.get("part_name", "Unknown"),
-                    "part_price": part.get("price", 0),
-                    "company_name": part.get("company_name", "Unknown"),
-                    "stock_quantity": part.get("stock_quantity", 0),
-                    "vehicle_model": part.get("vehicle_model", 0),
-                    "part_number": part.get("part_number", 0),
-                    "added_on": part.get("added_on", 0)
+                    "part_name": part["part_name"],
+                    "part_price": part["price"],
+                    "company_name": part["company_name"],
+                    "vehicle_model": part["vehicle_model"],
+                    "part_number": part["part_number"],
+                    "added_on": part["added_on"]
                 }}}
             )
 
-            # Decrease the stock quantity by 1
+            # Decrease stock & increase sold count
             db["vehicle_parts"].update_one(
                 {"_id": ObjectId(part_id)},
-                {"$inc": {"stock_quantity": -1}}
+                {"$inc": {"stock_quantity": -1, "sold_quantity": 1}}
             )
 
             return JsonResponse({
@@ -445,9 +432,9 @@ def add_task_part(request, task_id):
                 "task_id": task_id,
                 "added_part": {
                     "part_id": str(part["_id"]),
-                    "part_name": part.get("part_name", "Unknown"),
-                    "part_price": part.get("price", 0),
-                    "remaining_stock": part.get("stock_quantity", 0) - 1  # Predict new stock level
+                    "part_name": part["part_name"],
+                    "part_price": part["price"],
+                    "remaining_stock": part["stock_quantity"] - 1
                 }
             }, status=200)
 
@@ -456,6 +443,121 @@ def add_task_part(request, task_id):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
+
+# inventry summary
+# @csrf_exempt
+# def get_inventory_summary(request):
+#     try:
+#         # 🛠️ Aggregate total used parts & total cost from tasks
+#         total_parts_data = db["tasks"].aggregate([
+#             {"$unwind": "$task_parts"},
+#             {"$group": {
+#                 "_id": "$task_parts.part_name",
+#                 "total_sold": {"$sum": 1},  # Count usage of each part
+#                 "total_revenue": {"$sum": "$task_parts.part_price"}  # Total sales revenue
+#             }}
+#         ])
+#         total_parts_list = list(total_parts_data)
+
+#         # 📊 Calculate total revenue & create part usage mapping
+#         total_parts_used = sum(part["total_sold"] for part in total_parts_list)
+#         total_parts_cost = sum(part["total_revenue"] for part in total_parts_list)
+
+#         # 🔥 Get most & least sold parts
+#         sorted_parts = sorted(total_parts_list, key=lambda x: x["total_sold"], reverse=True)
+#         most_sold_parts = sorted_parts[:1]  # Top 5
+#         least_sold_parts = sorted_parts[-3:]  # Bottom 5
+
+#         # 📦 Count total available parts in inventory
+#         total_parts = db["vehicle_parts"].count_documents({})
+
+#         # ⚠️ Get low stock parts (stock < 5)
+#         low_stock_parts = list(db["vehicle_parts"].find(
+#             {"stock_quantity": {"$lt": 5}},
+#             {"part_name": 1, "stock_quantity": 1, "_id": 0}
+#         ))
+
+#         # ❌ Get out-of-stock parts (stock == 0)
+#         out_of_stock_parts = list(db["vehicle_parts"].find(
+#             {"stock_quantity": 0},
+#             {"part_name": 1, "_id": 0}
+#         ))
+
+#         # 💰 Calculate total inventory value
+#         total_stock_value_data = db["vehicle_parts"].aggregate([
+#             {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}}
+#         ])
+#         total_value = next(total_stock_value_data, {"total_value": 0})
+
+#         return JsonResponse({
+#             "total_parts_used": total_parts_used,
+#             "total_parts_cost": total_parts_cost,
+#             "total_revenue_generated": total_parts_cost,  # Same as total cost of sold parts
+#             "most_sold_parts": most_sold_parts,
+#             "least_sold_parts": least_sold_parts,
+#             "total_parts": total_parts,
+#             "low_stock_parts": low_stock_parts,
+#             "out_of_stock_parts": out_of_stock_parts,
+#             "total_stock_value": total_value["total_value"]
+#         })
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_inventory_summary(request):
+    try:
+        # Aggregate total parts used in tasks
+        total_parts_data = db["tasks"].aggregate([
+            {"$unwind": "$task_parts"},  # Flatten task_parts array
+            {"$group": {
+                "_id": "$task_parts.part_id",
+                "total_sold": {"$sum": 1},  # Count total sold parts
+                "total_revenue": {"$sum": "$task_parts.part_price"}  # Total cost of used parts
+            }}
+        ])
+
+        total_parts_list = list(total_parts_data)
+
+        # Get most & least sold parts
+        sorted_parts = sorted(total_parts_list, key=lambda x: x["total_sold"], reverse=True)
+        most_sold_parts = sorted_parts[:3]  # Top 5 most sold
+        least_sold_parts = sorted_parts[-3:]  # Bottom 5 least sold
+
+        # Calculate total revenue generated (profit) = (price - original_price) * quantity_sold
+        total_revenue_generated = 0
+
+        for part in total_parts_list:
+            part_details = db["vehicle_parts"].find_one({"_id": ObjectId(part["_id"])}, {"price": 1, "orginal_price": 1})
+            if part_details:
+                price = part_details.get("price", 0)
+                original_price = part_details.get("orginal_price", 0)  # Handle missing original price
+                revenue_per_part = (price - original_price) * part["total_sold"]
+                total_revenue_generated += revenue_per_part
+
+        # Count total parts & calculate stock value
+        total_parts = db["vehicle_parts"].count_documents({})
+        low_stock_parts = list(db["vehicle_parts"].find({"stock_quantity": {"$lt": 5}}, {"part_name": 1, "stock_quantity": 1, "_id": 0}))
+
+        total_stock_value = db["vehicle_parts"].aggregate([
+            {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}}
+        ])
+        total_value = next(total_stock_value, {"total_value": 0})
+
+        return JsonResponse({
+            "total_parts": total_parts,
+            "low_stock_parts": low_stock_parts,
+            "total_stock_value": total_value["total_value"],
+            "total_parts_used": sum(part["total_sold"] for part in total_parts_list),
+            "total_parts_cost": sum(part["total_revenue"] for part in total_parts_list),
+            "total_revenue_generated": total_revenue_generated,  # Profit
+            "most_sold_parts": most_sold_parts,
+            "least_sold_parts": least_sold_parts
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 
