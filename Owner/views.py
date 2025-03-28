@@ -45,6 +45,11 @@ def add_vehicle_part(request):
                 if not data.get(field):
                     return JsonResponse({"error": f"{field.replace('_', ' ').title()} is required"}, status=400)
 
+            # ✅ Check if the part already exists
+            existing_part = parts_collection.find_one({"part_name": part_name, "vehicle_model": vehicle_model})
+            if existing_part:
+                return JsonResponse({"error": "Part already exists for this vehicle model"}, status=400)
+
             # ✅ Create part document
             part = {
                 "part_name": part_name,

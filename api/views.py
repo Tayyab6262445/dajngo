@@ -333,6 +333,63 @@ def create_task(request):
 
 
 # add task new chat function
+# @csrf_exempt
+# def add_task_part(request, task_id):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             part_id = data.get("part_id")
+
+#             # Validate part_id
+#             if not part_id or not ObjectId.is_valid(part_id):
+#                 return JsonResponse({"error": "Invalid part ID format"}, status=400)
+
+#             # Validate task_id
+#             if not ObjectId.is_valid(task_id):
+#                 return JsonResponse({"error": "Invalid task ID format"}, status=400)
+
+#             # Find the task in MongoDB
+#             task = tasks_collection.find_one({"_id": ObjectId(task_id)})
+#             if not task:
+#                 return JsonResponse({"error": "Task not found"}, status=404)
+
+#             # Find the part in the correct collection (vehicle_parts)
+#             part = db["vehicle_parts"].find_one({"_id": ObjectId(part_id)})
+#             if not part:
+#                 return JsonResponse({"error": "Part not found"}, status=404)
+
+#             # Debugging: Print retrieved part to verify
+#             print("Part found:", part)
+
+#             # Update task document by adding the part
+#             tasks_collection.update_one(
+#                 {"_id": ObjectId(task_id)},
+#                 {"$push": {"task_parts": {
+#                     "part_id": str(part["_id"]),
+#                     "part_name": part.get("part_name", "Unknown"),
+#                     "part_price": part.get("price",0),
+#                     "company_name":part.get("company_name","Unknown"),
+#                     "stock_quantity":part.get("stock_quantity",0),
+#                     "vehicle_model":part.get("vehicle_model",0),
+#                     "part_number":part.get("part_number",0),
+#                     "added_on":part.get("added_on",0)
+#                 }}}
+#             )
+
+#             return JsonResponse({
+#                 "message": "Part added successfully!",
+#                 "task_id": task_id,
+#                 "added_part": {
+#                     "part_id": str(part["_id"]),
+#                     "part_name": part.get("part_name", "Unknown"),
+#                     "part_price": part.get("part_price", 0)
+#                 }
+#             }, status=200)
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+#     return JsonResponse({"error": "Method not allowed"}, status=405)
 @csrf_exempt
 def add_task_part(request, task_id):
     if request.method == "POST":
@@ -353,13 +410,14 @@ def add_task_part(request, task_id):
             if not task:
                 return JsonResponse({"error": "Task not found"}, status=404)
 
-            # Find the part in the correct collection (vehicle_parts)
+            # Find the part in the vehicle_parts collection
             part = db["vehicle_parts"].find_one({"_id": ObjectId(part_id)})
             if not part:
                 return JsonResponse({"error": "Part not found"}, status=404)
 
-            # Debugging: Print retrieved part to verify
-            print("Part found:", part)
+            # Check if stock is available
+            if part.get("stock_quantity", 0) <= 0:
+                return JsonResponse({"error": "Insufficient stock for this part"}, status=400)
 
             # Update task document by adding the part
             tasks_collection.update_one(
@@ -367,13 +425,19 @@ def add_task_part(request, task_id):
                 {"$push": {"task_parts": {
                     "part_id": str(part["_id"]),
                     "part_name": part.get("part_name", "Unknown"),
-                    "part_price": part.get("price",0),
-                    "company_name":part.get("company_name","Unknown"),
-                    "stock_quantity":part.get("stock_quantity",0),
-                    "vehicle_model":part.get("vehicle_model",0),
-                    "part_number":part.get("part_number",0),
-                    "added_on":part.get("added_on",0)
+                    "part_price": part.get("price", 0),
+                    "company_name": part.get("company_name", "Unknown"),
+                    "stock_quantity": part.get("stock_quantity", 0),
+                    "vehicle_model": part.get("vehicle_model", 0),
+                    "part_number": part.get("part_number", 0),
+                    "added_on": part.get("added_on", 0)
                 }}}
+            )
+
+            # Decrease the stock quantity by 1
+            db["vehicle_parts"].update_one(
+                {"_id": ObjectId(part_id)},
+                {"$inc": {"stock_quantity": -1}}
             )
 
             return JsonResponse({
@@ -382,7 +446,8 @@ def add_task_part(request, task_id):
                 "added_part": {
                     "part_id": str(part["_id"]),
                     "part_name": part.get("part_name", "Unknown"),
-                    "part_price": part.get("part_price", 0)
+                    "part_price": part.get("price", 0),
+                    "remaining_stock": part.get("stock_quantity", 0) - 1  # Predict new stock level
                 }
             }, status=200)
 
@@ -390,6 +455,10 @@ def add_task_part(request, task_id):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
+
 
 # get task wiith parts
 @csrf_exempt
