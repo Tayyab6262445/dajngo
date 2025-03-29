@@ -262,8 +262,8 @@ def get_all_users(request):
 def get_users_task_summary(request):
     if request.method == "GET":
         try:
-            # Fetch all users (get their IDs and usernames)
-            users = list(users_collection.find({}, {"_id": 1, "username": 1}))
+            # Fetch all users (get their IDs, usernames, and emails)
+            users = list(users_collection.find({}, {"_id": 1, "username": 1, "email": 1}))
 
             # Prepare user task summary
             user_task_summary = []
@@ -275,12 +275,29 @@ def get_users_task_summary(request):
                 completed_tasks = db["tasks"].count_documents({"assigned_user_id": user_id, "task_status": "completed"})
                 pending_tasks = db["tasks"].count_documents({"assigned_user_id": user_id, "task_status": "pending"})
 
-                # Append user task details
+                # Aggregate total parts used & total cost in completed tasks
+                completed_tasks_data = db["tasks"].aggregate([
+                    {"$match": {"assigned_user_id": user_id, "task_status": "completed"}},
+                    {"$unwind": "$task_parts"},  # Flatten parts array
+                    {"$group": {
+                        "_id": None,
+                        "total_parts_used": {"$sum": 1},  # Count total parts
+                        "total_parts_cost": {"$sum": "$task_parts.part_price"}  # Sum of prices
+                    }}
+                ])
+
+                # Extract aggregated data
+                completed_tasks_summary = next(completed_tasks_data, {"total_parts_used": 0, "total_parts_cost": 0})
+
+                # Append user task details (handle missing email)
                 user_task_summary.append({
-                    "username": user["username"],
+                    "username": user.get("username", "Unknown"),  
+                    "email": user.get("email", "N/A"),  # Default to "N/A" if email is missing
                     "total_tasks": total_tasks,
                     "completed_tasks": completed_tasks,
-                    "pending_tasks": pending_tasks
+                    "pending_tasks": pending_tasks,
+                    "total_parts_used": completed_tasks_summary["total_parts_used"],  # Total parts used in completed tasks
+                    "total_parts_cost": completed_tasks_summary["total_parts_cost"]  # Total cost of used parts
                 })
 
             return JsonResponse(user_task_summary, safe=False)
@@ -289,6 +306,7 @@ def get_users_task_summary(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 from datetime import datetime
 
