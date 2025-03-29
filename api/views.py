@@ -514,7 +514,7 @@ def get_inventory_summary(request):
                 "part_id": str(part["_id"]),  # Convert ObjectId to string
                 "part_name": part_details.get("part_name", "Unknown") if part_details else "Unknown",
                 "remaining_stock": part_details.get("stock_quantity", 0) if part_details else 0,
-                "price": part_details.get("price", 0) if part_details else 0,
+                "price": float(part_details.get("price", 0)) if part_details else 0,  # Convert to float
                 "total_sold": part["total_sold"],
                 "total_revenue": part["total_revenue"]
             }
@@ -527,8 +527,9 @@ def get_inventory_summary(request):
         for part in total_parts_list:
             part_details = db["vehicle_parts"].find_one({"_id": ObjectId(part["_id"])}, {"price": 1, "orginal_price": 1})
             if part_details:
-                price = part_details.get("price", 0)
-                original_price = part_details.get("orginal_price", 0)  # Handle missing original price
+                # Convert to float to avoid string issues
+                price = float(part_details.get("price", 0))
+                original_price = float(part_details.get("orginal_price", 0))  # Convert to float
                 revenue_per_part = (price - original_price) * part["total_sold"]
                 total_revenue_generated += revenue_per_part
 
@@ -554,6 +555,7 @@ def get_inventory_summary(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 
 
 
