@@ -252,6 +252,47 @@ def get_all_users(request):
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
+
+
+
+
+
+# get user andd their total tasks and completed task and pening task
+def get_users_task_summary(request):
+    if request.method == "GET":
+        try:
+            users = list(users_collection.find({}, {"_id": 1, "username": 1}))  # Fetch all users
+            
+            user_task_summary = []
+            
+            for user in users:
+                user_id = str(user["_id"])  # Convert ObjectId to string
+                
+                # Fetch total assigned tasks for the user
+                total_tasks = tasks_collection.count_documents({"assigned_to": user_id})
+                
+                # Fetch completed tasks
+                completed_tasks = tasks_collection.count_documents({"assigned_to": user_id, "status": "completed"})
+                
+                # Pending tasks = Total tasks - Completed tasks
+                pending_tasks = total_tasks - completed_tasks
+                
+                # Append user task summary
+                user_task_summary.append({
+                    "username": user.get("username", "Unknown"),
+                    "total_tasks": total_tasks,
+                    "completed_tasks": completed_tasks,
+                    "pending_tasks": pending_tasks
+                })
+            
+            return JsonResponse(user_task_summary, safe=False) if user_task_summary else JsonResponse({"message": "No users found"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 from datetime import datetime
 
 @csrf_exempt
@@ -325,64 +366,7 @@ def create_task(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-# add task new chat function
-# @csrf_exempt
-# def add_task_part(request, task_id):
-#     if request.method == "POST":
-#         try:
-#             data = json.loads(request.body)
-#             part_id = data.get("part_id")
 
-#             # Validate part_id
-#             if not part_id or not ObjectId.is_valid(part_id):
-#                 return JsonResponse({"error": "Invalid part ID format"}, status=400)
-
-#             # Validate task_id
-#             if not ObjectId.is_valid(task_id):
-#                 return JsonResponse({"error": "Invalid task ID format"}, status=400)
-
-#             # Find the task in MongoDB
-#             task = tasks_collection.find_one({"_id": ObjectId(task_id)})
-#             if not task:
-#                 return JsonResponse({"error": "Task not found"}, status=404)
-
-#             # Find the part in the correct collection (vehicle_parts)
-#             part = db["vehicle_parts"].find_one({"_id": ObjectId(part_id)})
-#             if not part:
-#                 return JsonResponse({"error": "Part not found"}, status=404)
-
-#             # Debugging: Print retrieved part to verify
-#             print("Part found:", part)
-
-#             # Update task document by adding the part
-#             tasks_collection.update_one(
-#                 {"_id": ObjectId(task_id)},
-#                 {"$push": {"task_parts": {
-#                     "part_id": str(part["_id"]),
-#                     "part_name": part.get("part_name", "Unknown"),
-#                     "part_price": part.get("price",0),
-#                     "company_name":part.get("company_name","Unknown"),
-#                     "stock_quantity":part.get("stock_quantity",0),
-#                     "vehicle_model":part.get("vehicle_model",0),
-#                     "part_number":part.get("part_number",0),
-#                     "added_on":part.get("added_on",0)
-#                 }}}
-#             )
-
-#             return JsonResponse({
-#                 "message": "Part added successfully!",
-#                 "task_id": task_id,
-#                 "added_part": {
-#                     "part_id": str(part["_id"]),
-#                     "part_name": part.get("part_name", "Unknown"),
-#                     "part_price": part.get("part_price", 0)
-#                 }
-#             }, status=200)
-
-#         except json.JSONDecodeError:
-#             return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-#     return JsonResponse({"error": "Method not allowed"}, status=405)
 @csrf_exempt
 def add_task_part(request, task_id):
     if request.method == "POST":
@@ -443,124 +427,7 @@ def add_task_part(request, task_id):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-
-
-# inventry summary
-# @csrf_exempt
-# def get_inventory_summary(request):
-#     try:
-#         # 🛠️ Aggregate total used parts & total cost from tasks
-#         total_parts_data = db["tasks"].aggregate([
-#             {"$unwind": "$task_parts"},
-#             {"$group": {
-#                 "_id": "$task_parts.part_name",
-#                 "total_sold": {"$sum": 1},  # Count usage of each part
-#                 "total_revenue": {"$sum": "$task_parts.part_price"}  # Total sales revenue
-#             }}
-#         ])
-#         total_parts_list = list(total_parts_data)
-
-#         # 📊 Calculate total revenue & create part usage mapping
-#         total_parts_used = sum(part["total_sold"] for part in total_parts_list)
-#         total_parts_cost = sum(part["total_revenue"] for part in total_parts_list)
-
-#         # 🔥 Get most & least sold parts
-#         sorted_parts = sorted(total_parts_list, key=lambda x: x["total_sold"], reverse=True)
-#         most_sold_parts = sorted_parts[:1]  # Top 5
-#         least_sold_parts = sorted_parts[-3:]  # Bottom 5
-
-#         # 📦 Count total available parts in inventory
-#         total_parts = db["vehicle_parts"].count_documents({})
-
-#         # ⚠️ Get low stock parts (stock < 5)
-#         low_stock_parts = list(db["vehicle_parts"].find(
-#             {"stock_quantity": {"$lt": 5}},
-#             {"part_name": 1, "stock_quantity": 1, "_id": 0}
-#         ))
-
-#         # ❌ Get out-of-stock parts (stock == 0)
-#         out_of_stock_parts = list(db["vehicle_parts"].find(
-#             {"stock_quantity": 0},
-#             {"part_name": 1, "_id": 0}
-#         ))
-
-#         # 💰 Calculate total inventory value
-#         total_stock_value_data = db["vehicle_parts"].aggregate([
-#             {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}}
-#         ])
-#         total_value = next(total_stock_value_data, {"total_value": 0})
-
-#         return JsonResponse({
-#             "total_parts_used": total_parts_used,
-#             "total_parts_cost": total_parts_cost,
-#             "total_revenue_generated": total_parts_cost,  # Same as total cost of sold parts
-#             "most_sold_parts": most_sold_parts,
-#             "least_sold_parts": least_sold_parts,
-#             "total_parts": total_parts,
-#             "low_stock_parts": low_stock_parts,
-#             "out_of_stock_parts": out_of_stock_parts,
-#             "total_stock_value": total_value["total_value"]
-#         })
-
-#     except Exception as e:
-#         return JsonResponse({"error": str(e)}, status=500)
-
-# @csrf_exempt
-# def get_inventory_summary(request):
-#     try:
-#         # Aggregate total parts used in tasks
-#         total_parts_data = db["tasks"].aggregate([
-#             {"$unwind": "$task_parts"},  # Flatten task_parts array
-#             {"$group": {
-#                 "_id": "$task_parts.part_id",
-#                 "total_sold": {"$sum": 1},  # Count total sold parts
-#                 "total_revenue": {"$sum": "$task_parts.part_price"}  # Total cost of used parts
-#             }}
-#         ])
-
-#         total_parts_list = list(total_parts_data)
-
-#         # Get most & least sold parts
-#         sorted_parts = sorted(total_parts_list, key=lambda x: x["total_sold"], reverse=True)
-#         most_sold_parts = sorted_parts[:3]  # Top 3 most sold
-#         least_sold_parts = sorted_parts[-3:]  # Bottom 3 least sold
-
-#         # Calculate total revenue generated (profit) = (price - original_price) * quantity_sold
-#         total_revenue_generated = 0
-
-#         for part in total_parts_list:
-#             part_details = db["vehicle_parts"].find_one({"_id": ObjectId(part["_id"])}, {"price": 1, "orginal_price": 1})
-#             if part_details:
-#                 price = part_details.get("price", 0)
-#                 original_price = part_details.get("orginal_price", 0)  # Handle missing original price
-#                 revenue_per_part = (price - original_price) * part["total_sold"]
-#                 total_revenue_generated += revenue_per_part
-
-#         # Count total parts & calculate stock value
-#         total_parts = db["vehicle_parts"].count_documents({})
-#         low_stock_parts = list(db["vehicle_parts"].find({"stock_quantity": {"$lt": 5}}, {"part_name": 1, "stock_quantity": 1, "_id": 0}))
-
-#         total_stock_value = db["vehicle_parts"].aggregate([
-#             {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}}
-#         ])
-#         total_value = next(total_stock_value, {"total_value": 0})
-
-#         return JsonResponse({
-#             "total_parts": total_parts,
-#             "low_stock_parts": low_stock_parts,
-#             "total_stock_value": total_value["total_value"],
-#             "total_parts_used": sum(part["total_sold"] for part in total_parts_list),
-#             "total_parts_cost": sum(part["total_revenue"] for part in total_parts_list),
-#             "total_revenue_generated": total_revenue_generated,  # Profit
-#             "most_sold_parts": most_sold_parts,
-#             "least_sold_parts": least_sold_parts
-#         })
-
-#     except Exception as e:
-#         return JsonResponse({"error": str(e)}, status=500)
-from django.http import JsonResponse
-from bson import ObjectId
-
+# inventry system of Owner
 @csrf_exempt
 def get_inventory_summary(request):
     try:
@@ -912,6 +779,35 @@ def get_task_by_id(request, task_id):
             task["assigned_user_id"] = str(task["assigned_user_id"])
 
             return JsonResponse(task, safe=False)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
+
+
+
+@csrf_exempt
+def get_vehicle_part_by_id(request, part_id):
+    if request.method == "GET":
+        try:
+            # ✅ Validate if part_id is a valid ObjectId
+            if not ObjectId.is_valid(part_id):
+                return JsonResponse({"error": "Invalid part ID format"}, status=400)
+
+            # ✅ Find the vehicle part in the database
+            part = parts_collection.find_one({"_id": ObjectId(part_id)})
+
+            if not part:
+                return JsonResponse({"message": "Part not found"}, status=404)
+
+            # ✅ Convert ObjectId fields to string for JSON response
+            part["_id"] = str(part["_id"])
+
+            return JsonResponse(part, safe=False)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

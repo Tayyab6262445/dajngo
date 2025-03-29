@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import signup, signin,  update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user,get_user_details,get_inventory_summary
+from .views import signup, signin,  update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user,get_user_details,get_inventory_summary,get_users_task_summary,get_vehicle_part_by_id
 
 urlpatterns = [
     path("signup/", signup, name="signup"),
@@ -19,6 +19,15 @@ urlpatterns = [
     path('tasks/pending/<str:user_id>/', get_pending_tasks_by_user, name='get_pending_tasks_by_user'),
     path('tasks/completed/<str:user_id>/', get_completed_tasks_by_user, name='get_completed_tasks_by_user'),
      path('get_inventory_summary/', get_inventory_summary, name='get_inventory_summary'),
+      path('vehicle-part/<str:part_id>/', get_vehicle_part_by_id, name='get_vehicle_part_by_id'),
+     
+     
+     
+     
+     path('get_users_task_summary/', get_users_task_summary, name='get_users_task_summary'),
+
+
+
 
     
    
