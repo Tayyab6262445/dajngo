@@ -258,40 +258,37 @@ def get_all_users(request):
 
 
 # get user andd their total tasks and completed task and pening task
+@csrf_exempt
 def get_users_task_summary(request):
     if request.method == "GET":
         try:
-            users = list(users_collection.find({}, {"_id": 1, "username": 1}))  # Fetch all users
-            
+            # Fetch all users (get their IDs and usernames)
+            users = list(users_collection.find({}, {"_id": 1, "username": 1}))
+
+            # Prepare user task summary
             user_task_summary = []
-            
+
             for user in users:
-                user_id = str(user["_id"])  # Convert ObjectId to string
-                
-                # Fetch total assigned tasks for the user
-                total_tasks = tasks_collection.count_documents({"assigned_to": user_id})
-                
-                # Fetch completed tasks
-                completed_tasks = tasks_collection.count_documents({"assigned_to": user_id, "status": "completed"})
-                
-                # Pending tasks = Total tasks - Completed tasks
-                pending_tasks = total_tasks - completed_tasks
-                
-                # Append user task summary
+                user_id = ObjectId(user["_id"])  # Convert user ID string to ObjectId
+
+                total_tasks = db["tasks"].count_documents({"assigned_user_id": user_id})
+                completed_tasks = db["tasks"].count_documents({"assigned_user_id": user_id, "task_status": "completed"})
+                pending_tasks = db["tasks"].count_documents({"assigned_user_id": user_id, "task_status": "pending"})
+
+                # Append user task details
                 user_task_summary.append({
-                    "username": user.get("username", "Unknown"),
+                    "username": user["username"],
                     "total_tasks": total_tasks,
                     "completed_tasks": completed_tasks,
                     "pending_tasks": pending_tasks
                 })
-            
-            return JsonResponse(user_task_summary, safe=False) if user_task_summary else JsonResponse({"message": "No users found"}, status=404)
+
+            return JsonResponse(user_task_summary, safe=False)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    
-    return JsonResponse({"error": "Method not allowed"}, status=405)
 
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 from datetime import datetime
 
@@ -426,6 +423,47 @@ def add_task_part(request, task_id):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
+# get all tasks of all user fro teh owner
+@csrf_exempt
+def get_all_tasks(request):
+    if request.method == "GET":
+        try:
+            # Fetch all tasks, excluding 'task_parts'
+            tasks = list(tasks_collection.find({}, {"task_parts": 0}))
+
+            # Convert ObjectId fields to string
+            for task in tasks:
+                task["_id"] = str(task["_id"])
+                task["assigned_user_id"] = str(task["assigned_user_id"])
+                task["check_in_time"] = task["check_in_time"].isoformat()  # Convert datetime to string
+
+                # Fetch assigned user details
+                assigned_user = users_collection.find_one(
+                    {"_id": ObjectId(task["assigned_user_id"])},
+                    {"_id": 1, "username": 1, "email": 1}
+                )
+                
+                if assigned_user:
+                    task["assigned_user"] = {
+                        "user_id": str(assigned_user["_id"]),
+                        "username": assigned_user["username"],
+                        "email": assigned_user["email"]
+                    }
+                else:
+                    task["assigned_user"] = None  # If user not found
+
+            return JsonResponse(tasks, safe=False) if tasks else JsonResponse({"message": "No tasks found"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
 
 # inventry system of Owner
 @csrf_exempt
