@@ -560,6 +560,77 @@ def get_all_tasks(request):
 
 
 # inventry system of Owner
+# @csrf_exempt
+# def get_inventory_summary(request):
+#     try:
+#         # Aggregate total parts used in tasks
+#         total_parts_data = db["tasks"].aggregate([
+#             {"$unwind": "$task_parts"},  # Flatten task_parts array
+#             {"$group": {
+#                 "_id": "$task_parts.part_id",
+#                 "total_sold": {"$sum": 1},  # Count total sold parts
+#                 "total_revenue": {"$sum": "$task_parts.part_price"}  # Total cost of used parts
+#             }}
+#         ])
+
+#         total_parts_list = list(total_parts_data)
+
+#         # Sort by most & least sold
+#         sorted_parts = sorted(total_parts_list, key=lambda x: x["total_sold"], reverse=True)
+#         most_sold_parts = sorted_parts[:3]  # Top 3 most sold
+#         least_sold_parts = sorted_parts[-3:]  # Bottom 3 least sold
+
+#         # Fetch additional details (name, stock, price) for most & least sold parts
+#         def get_part_details(part):
+#             part_details = db["vehicle_parts"].find_one(
+#                 {"_id": ObjectId(part["_id"])}, 
+#                 {"part_name": 1, "stock_quantity": 1, "price": 1, "_id": 0}
+#             )
+#             return {
+#                 "part_id": str(part["_id"]),  # Convert ObjectId to string
+#                 "part_name": part_details.get("part_name", "Unknown") if part_details else "Unknown",
+#                 "remaining_stock": part_details.get("stock_quantity", 0) if part_details else 0,
+#                 "price": float(part_details.get("price", 0)) if part_details else 0,  # Convert to float
+#                 "total_sold": part["total_sold"],
+#                 "total_revenue": part["total_revenue"]
+#             }
+
+#         most_sold_parts = [get_part_details(part) for part in most_sold_parts]
+#         least_sold_parts = [get_part_details(part) for part in least_sold_parts]
+
+#         # Calculate total revenue generated (profit) = (price - original_price) * quantity_sold
+#         total_revenue_generated = 0
+#         for part in total_parts_list:
+#             part_details = db["vehicle_parts"].find_one({"_id": ObjectId(part["_id"])}, {"price": 1, "orginal_price": 1})
+#             if part_details:
+#                 # Convert to float to avoid string issues
+#                 price = float(part_details.get("price", 0))
+#                 original_price = float(part_details.get("orginal_price", 0))  # Convert to float
+#                 revenue_per_part = (price - original_price) * part["total_sold"]
+#                 total_revenue_generated += revenue_per_part
+
+#         # Count total parts & calculate stock value
+#         total_parts = db["vehicle_parts"].count_documents({})
+#         low_stock_parts = list(db["vehicle_parts"].find({"stock_quantity": {"$lt": 5}}, {"part_name": 1, "stock_quantity": 1, "_id": 0}))
+
+#         total_stock_value = db["vehicle_parts"].aggregate([
+#             {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}} 
+#         ])
+#         total_value = next(total_stock_value, {"total_value": 0})
+
+#         return JsonResponse({
+#             "total_parts": total_parts,
+#             "low_stock_parts": low_stock_parts,
+#             "total_stock_value": total_value["total_value"],
+#             "total_parts_used": sum(part["total_sold"] for part in total_parts_list),
+#             "total_parts_cost": sum(part["total_revenue"] for part in total_parts_list),
+#             "total_revenue_generated": total_revenue_generated,  # Profit
+#             "most_sold_parts": most_sold_parts,
+#             "least_sold_parts": least_sold_parts
+#         })
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
 @csrf_exempt
 def get_inventory_summary(request):
     try:
@@ -589,10 +660,10 @@ def get_inventory_summary(request):
             return {
                 "part_id": str(part["_id"]),  # Convert ObjectId to string
                 "part_name": part_details.get("part_name", "Unknown") if part_details else "Unknown",
-                "remaining_stock": part_details.get("stock_quantity", 0) if part_details else 0,
-                "price": float(part_details.get("price", 0)) if part_details else 0,  # Convert to float
+                "remaining_stock": int(part_details.get("stock_quantity", 0)) if part_details else 0,  # ✅ Ensure integer
+                "price": float(part_details.get("price", 0)) if part_details else 0,  # ✅ Ensure float
                 "total_sold": part["total_sold"],
-                "total_revenue": part["total_revenue"]
+                "total_revenue": float(part["total_revenue"])  # ✅ Ensure float
             }
 
         most_sold_parts = [get_part_details(part) for part in most_sold_parts]
@@ -601,36 +672,57 @@ def get_inventory_summary(request):
         # Calculate total revenue generated (profit) = (price - original_price) * quantity_sold
         total_revenue_generated = 0
         for part in total_parts_list:
-            part_details = db["vehicle_parts"].find_one({"_id": ObjectId(part["_id"])}, {"price": 1, "orginal_price": 1})
+            part_details = db["vehicle_parts"].find_one(
+                {"_id": ObjectId(part["_id"])}, 
+                {"price": 1, "orginal_price": 1}
+            )
             if part_details:
-                # Convert to float to avoid string issues
+                # ✅ Convert to proper number types
                 price = float(part_details.get("price", 0))
-                original_price = float(part_details.get("orginal_price", 0))  # Convert to float
+                original_price = float(part_details.get("orginal_price", 0))
                 revenue_per_part = (price - original_price) * part["total_sold"]
                 total_revenue_generated += revenue_per_part
 
         # Count total parts & calculate stock value
         total_parts = db["vehicle_parts"].count_documents({})
-        low_stock_parts = list(db["vehicle_parts"].find({"stock_quantity": {"$lt": 5}}, {"part_name": 1, "stock_quantity": 1, "_id": 0}))
+        low_stock_parts = list(db["vehicle_parts"].find(
+            {"stock_quantity": {"$lt": 5}}, 
+            {"part_name": 1, "stock_quantity": 1, "_id": 0}
+        ))
 
+        # ✅ Fix aggregation: Ensure `stock_quantity` and `price` are numbers
         total_stock_value = db["vehicle_parts"].aggregate([
-            {"$group": {"_id": None, "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}}} 
+            {"$project": {
+                "stock_quantity": {"$toDouble": "$stock_quantity"},  # Convert stock to number
+                "price": {"$toDouble": "$price"}  # Convert price to number
+            }},
+            {"$group": {
+                "_id": None, 
+                "total_value": {"$sum": {"$multiply": ["$stock_quantity", "$price"]}}
+            }}
         ])
         total_value = next(total_stock_value, {"total_value": 0})
 
         return JsonResponse({
             "total_parts": total_parts,
             "low_stock_parts": low_stock_parts,
-            "total_stock_value": total_value["total_value"],
+            "total_stock_value": float(total_value["total_value"]),  # ✅ Ensure float
             "total_parts_used": sum(part["total_sold"] for part in total_parts_list),
-            "total_parts_cost": sum(part["total_revenue"] for part in total_parts_list),
-            "total_revenue_generated": total_revenue_generated,  # Profit
+            "total_parts_cost": sum(float(part["total_revenue"]) for part in total_parts_list),  # ✅ Ensure float
+            "total_revenue_generated": round(total_revenue_generated, 2),  # ✅ Ensure float and round
             "most_sold_parts": most_sold_parts,
             "least_sold_parts": least_sold_parts
         })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+
+
+
 
 # get task wiith parts
 @csrf_exempt
