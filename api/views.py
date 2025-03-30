@@ -538,8 +538,11 @@ def add_task_part(request, task_id):
             if not part:
                 return JsonResponse({"error": "Part not found"}, status=404)
 
-            # ✅ Ensure stock_quantity is treated as an integer
-            stock_quantity = int(part.get("stock_quantity", 0))  
+            # ✅ Convert stock_quantity to an integer
+            try:
+                stock_quantity = int(part.get("stock_quantity", 0))
+            except ValueError:
+                return JsonResponse({"error": "Invalid stock quantity format in database"}, status=500)
 
             if stock_quantity <= 0:
                 return JsonResponse({"error": "Insufficient stock for this part"}, status=400)
@@ -550,7 +553,7 @@ def add_task_part(request, task_id):
                 {"$push": {"task_parts": {
                     "part_id": str(part["_id"]),
                     "part_name": part["part_name"],
-                    "part_price": float(part["price"]),  # ✅ Ensure price is a float
+                    "part_price": float(part["price"]),  # Ensure price is a float
                     "company_name": part.get("company_name", "Unknown"),
                     "vehicle_model": part.get("vehicle_model", "Unknown"),
                     "part_number": part.get("part_number", "N/A"),
@@ -558,10 +561,10 @@ def add_task_part(request, task_id):
                 }}}
             )
 
-            # Decrease stock & increase sold count
+            # ✅ Convert stock_quantity before decrementing
             db["vehicle_parts"].update_one(
                 {"_id": ObjectId(part_id)},
-                {"$inc": {"stock_quantity": -1, "sold_quantity": 1}}
+                {"$set": {"stock_quantity": stock_quantity - 1}, "$inc": {"sold_quantity": 1}}
             )
 
             return JsonResponse({
@@ -570,7 +573,7 @@ def add_task_part(request, task_id):
                 "added_part": {
                     "part_id": str(part["_id"]),
                     "part_name": part["part_name"],
-                    "part_price": float(part["price"]),  # ✅ Ensure float
+                    "part_price": float(part["price"]),
                     "remaining_stock": stock_quantity - 1
                 }
             }, status=200)
