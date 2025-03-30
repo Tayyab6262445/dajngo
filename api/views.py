@@ -878,6 +878,264 @@ def get_vehicle_part_by_id(request, part_id):
 from django.http import JsonResponse
 from bson import ObjectId
 
+# def generate_full_report(request):
+#     if request.method == "GET":
+#         try:
+#             # ✅ Fetch Users (excluding password)
+#             users = list(users_collection.find({}, {"password": 0}))
+#             total_users = len(users)
+
+#             # ✅ Fetch Tasks
+#             tasks = list(tasks_collection.find({}))
+#             for task in tasks:
+#                 task.setdefault("task_status", "Unknown")  
+
+#             completed_tasks = [task for task in tasks if task["task_status"].lower() == "completed"]
+#             pending_tasks = [task for task in tasks if task["task_status"].lower() == "pending"]
+
+#             # ✅ Fetch Vehicle Parts
+#             parts = list(parts_collection.find({}))
+
+#             # ✅ User Performance Metrics
+#             user_task_report = []
+#             for user in users:
+#                 user_tasks = [task for task in tasks if str(task.get("assigned_user_id")) == str(user["_id"])]
+#                 completed_count = len([task for task in user_tasks if task["task_status"].lower() == "completed"])
+#                 pending_count = len([task for task in user_tasks if task["task_status"].lower() == "pending"])
+#                 total_tasks = len(user_tasks)
+#                 completion_rate = (completed_count / total_tasks * 100) if total_tasks > 0 else 0
+
+#                 used_parts = [task.get("task_parts", []) for task in user_tasks if task["task_status"].lower() == "completed"]
+#                 used_parts_flattened = [part for sublist in used_parts for part in sublist]
+
+#                 user_task_report.append({
+#                     # "user_id": str(user["_id"]),
+#                     "full_name": user.get("full_name", "Unknown"),
+#                     # "email": user.get("email", "Unknown"),
+#                     "role": user.get("role", "Unknown"),
+#                     "total_tasks": total_tasks,
+#                     "pending_tasks": pending_count,
+#                     "completed_tasks": completed_count,
+#                     "completion_rate": round(completion_rate, 2),
+#                     "used_parts": used_parts_flattened
+#                 })
+
+#             # ✅ Task Details with Assigned Users
+#             task_details_report = []
+#             for task in tasks:
+#                 assigned_user = next((user for user in users if str(user["_id"]) == str(task.get("assigned_user_id"))), None)
+#                 task_details_report.append({
+#                     # "task_id": str(task["_id"]),
+#                     "title": task["task_title"],
+#                     # "description": task.get("task_description", ""),
+#                     "status": task["task_status"],
+#                     "assigned_user": assigned_user["full_name"] if assigned_user else "Unknown",
+#                     "vehicle_name": task.get("vehicle_name", "Unknown"),
+#                     # "vehicle_number": task.get("vehicle_number", "Unknown"),
+#                     "customer_name": task.get("customer_name", "Unknown"),
+#                     # "check_in_time": task.get("check_in_time", ""),
+#                     "used_parts": task.get("task_parts", [])
+#                 })
+
+#             # ✅ Product Inventory & Sales Insights
+#             product_inventory_report = []
+#             total_revenue = 0
+#             total_remaining_price = 0
+#             total_sold_parts = 0
+#             total_stock_parts = 0
+#             out_of_stock_count = 0
+
+#             for part in parts:
+#                 remaining_quantity = max(part["stock_quantity"] - part.get("sold_quantity", 0), 0)
+#                 used_quantity = part.get("sold_quantity", 0)
+#                 remaining_price = remaining_quantity * part["price"]
+#                 sold_price = used_quantity * part["price"]
+
+#                 total_revenue += sold_price
+#                 total_remaining_price += remaining_price
+#                 total_sold_parts += used_quantity
+#                 total_stock_parts += part["stock_quantity"]
+#                 if remaining_quantity == 0:
+#                     out_of_stock_count += 1
+
+#                 product_inventory_report.append({
+#                     # "part_id": str(part["_id"]),
+#                     "part_name": part["part_name"],
+#                     # "part_number": part["part_number"],
+#                     # "vehicle_model": part["vehicle_model"],
+#                     # "company_name": part["company_name"],
+#                     # "added_on": part["added_on"],
+#                     "stock_quantity": part["stock_quantity"],
+#                     "used_quantity": used_quantity,
+#                     "remaining_quantity": remaining_quantity,
+#                     "out_of_stock": remaining_quantity == 0,
+#                     "original_price": part["orginal_price"],
+#                     "price": part["price"],
+#                     "remaining_price": remaining_price,
+#                     "sold_price": sold_price
+#                 })
+
+#             # ✅ Advanced Metrics
+#             task_completion_ratio = (len(completed_tasks) / len(tasks) * 100) if tasks else 0
+#             avg_revenue_per_product = total_revenue / total_sold_parts if total_sold_parts else 0
+#             out_of_stock_percentage = (out_of_stock_count / len(parts) * 100) if parts else 0
+
+#             # ✅ Final Report Response
+#             report = {
+#                 "user_task_report": user_task_report,
+#                 "task_details_report": task_details_report,
+#                 "product_inventory_report": product_inventory_report,
+#                 "advanced_statistics": {
+#                     "total_users": total_users,
+#                     "total_tasks": len(tasks),
+#                     "total_completed_tasks": len(completed_tasks),
+#                     "total_pending_tasks": len(pending_tasks),
+#                     "task_completion_ratio": round(task_completion_ratio, 2),
+#                     "total_revenue_generated": round(total_revenue, 2),
+#                     "total_remaining_product_value": round(total_remaining_price, 2),
+#                     "total_sold_parts": total_sold_parts,
+#                     "total_stock_parts": total_stock_parts,
+#                     "out_of_stock_items": out_of_stock_count,
+#                     "out_of_stock_percentage": round(out_of_stock_percentage, 2),
+#                     "average_revenue_per_product": round(avg_revenue_per_product, 2)
+#                 }
+#             }
+
+#             return JsonResponse(report, safe=False, status=200)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+
+#     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
+
+
+
+# from bson.objectid import ObjectId
+# from datetime import datetime, timedelta
+
+# def get_date_from_objectid(object_id):
+#     """Extracts the date from MongoDB ObjectId"""
+#     return ObjectId(object_id).generation_time.date()
+
+# def generate_full_report(request):
+#     if request.method == "GET":
+#         try:
+#             # ✅ Get date filter parameters
+#             report_type = request.GET.get("report_type", "all")  # "daily", "weekly", "custom", or "all"
+#             start_date_param = request.GET.get("start_date")  # e.g., "2025-03-01"
+#             end_date_param = request.GET.get("end_date")  # e.g., "2025-03-30"
+
+#             # ✅ Determine Date Range
+#             today = datetime.utcnow().date()
+#             start_date, end_date = None, None
+
+#             if report_type == "daily":
+#                 start_date = today
+#                 end_date = today
+#             elif report_type == "weekly":
+#                 start_date = today - timedelta(days=7)
+#                 end_date = today
+#             elif report_type == "custom" and start_date_param and end_date_param:
+#                 start_date = datetime.strptime(start_date_param, "%Y-%m-%d").date()
+#                 end_date = datetime.strptime(end_date_param, "%Y-%m-%d").date()
+
+#             # ✅ Fetch Users, Tasks, Parts
+#             users = list(users_collection.find({}, {"password": 0}))
+#             tasks = list(tasks_collection.find({}))
+#             parts = list(parts_collection.find({}))
+
+#             # ✅ Apply Date Filters if Needed
+#             if report_type in ["daily", "weekly", "custom"]:
+#                 users = [user for user in users if start_date <= get_date_from_objectid(user["_id"]) <= end_date]
+#                 tasks = [task for task in tasks if start_date <= get_date_from_objectid(task["_id"]) <= end_date]
+#                 parts = [part for part in parts if start_date <= get_date_from_objectid(part["_id"]) <= end_date]
+
+#             # ✅ Continue with Report Generation Logic (from your previous function)
+#             total_users = len(users)
+#             total_tasks = len(tasks)
+#             completed_tasks = [task for task in tasks if task.get("task_status", "").lower() == "completed"]
+#             pending_tasks = [task for task in tasks if task.get("task_status", "").lower() == "pending"]
+
+#             # ✅ User & Task Overview
+#             user_task_report = []
+#             for user in users:
+#                 user_tasks = [task for task in tasks if str(task.get("assigned_user_id")) == str(user["_id"])]
+#                 used_parts = [task.get("task_parts", []) for task in user_tasks if task.get("task_status", "").lower() == "completed"]
+#                 used_parts_flattened = [part for sublist in used_parts for part in sublist]  # Flatten list
+
+#                 user_task_report.append({
+#                     "user_id": str(user["_id"]),
+#                     "full_name": user.get("full_name", "Unknown"),
+#                     "role": user.get("role", "Unknown"),
+#                     "total_tasks": len(user_tasks),
+#                     "pending_tasks": len([task for task in user_tasks if task.get("task_status", "").lower() == "pending"]),
+#                     "completed_tasks": len([task for task in user_tasks if task.get("task_status", "").lower() == "completed"]),
+#                     "used_parts": used_parts_flattened
+#                 })
+
+#             # ✅ Task Details
+#             task_details_report = []
+#             for task in tasks:
+#                 assigned_user = next((user for user in users if str(user["_id"]) == str(task.get("assigned_user_id"))), None)
+#                 task_details_report.append({
+#                     "task_id": str(task["_id"]),
+#                     "title": task["task_title"],
+#                     "description": task.get("task_description", ""),
+#                     "status": task.get("task_status", "Unknown"),
+#                     "assigned_user": assigned_user["full_name"] if assigned_user else "Unknown",
+#                     "used_parts": task.get("task_parts", [])
+#                 })
+
+#             # ✅ Product Inventory Report
+#             product_inventory_report = []
+#             total_revenue = 0
+#             total_remaining_price = 0
+
+#             for part in parts:
+#                 remaining_quantity = max(part["stock_quantity"] - part.get("sold_quantity", 0), 0)
+#                 used_quantity = part.get("sold_quantity", 0)
+#                 remaining_price = remaining_quantity * part["price"]
+#                 sold_price = used_quantity * part["price"]
+
+#                 total_revenue += sold_price
+#                 total_remaining_price += remaining_price
+
+#                 product_inventory_report.append({
+#                     "part_id": str(part["_id"]),
+#                     "part_name": part["part_name"],
+#                     "remaining_quantity": remaining_quantity,
+#                     "sold_quantity": used_quantity,
+#                     "out_of_stock": remaining_quantity == 0,
+#                     "price": part["price"],
+#                     "remaining_price": remaining_price,
+#                     "sold_price": sold_price
+#                 })
+
+#             # ✅ Final Report Response
+#             report = {
+#                 "summary": {
+#                     "report_type": report_type,
+#                     "total_users": total_users,
+#                     "total_tasks": total_tasks,
+#                     "total_completed_tasks": len(completed_tasks),
+#                     "total_pending_tasks": len(pending_tasks),
+#                     "total_revenue_generated": total_revenue,
+#                     "total_remaining_product_value": total_remaining_price
+#                 },
+#                 "user_task_report": user_task_report,
+#                 "task_details_report": task_details_report,
+#                 "product_inventory_report": product_inventory_report
+#             }
+
+#             return JsonResponse(report, safe=False, status=200)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+
+#     return JsonResponse({"error": "Method not allowed"}, status=405)
 def generate_full_report(request):
     if request.method == "GET":
         try:
@@ -888,7 +1146,7 @@ def generate_full_report(request):
             # ✅ Fetch Tasks
             tasks = list(tasks_collection.find({}))
             for task in tasks:
-                task.setdefault("task_status", "Unknown")  
+                task.setdefault("task_status", "Unknown")
 
             completed_tasks = [task for task in tasks if task["task_status"].lower() == "completed"]
             pending_tasks = [task for task in tasks if task["task_status"].lower() == "pending"]
@@ -896,8 +1154,8 @@ def generate_full_report(request):
             # ✅ Fetch Vehicle Parts
             parts = list(parts_collection.find({}))
 
-            # ✅ User Performance Metrics
-            user_task_report = []
+            # ✅ User Performance with Used Parts & Task Info
+            user_report = []
             for user in users:
                 user_tasks = [task for task in tasks if str(task.get("assigned_user_id")) == str(user["_id"])]
                 completed_count = len([task for task in user_tasks if task["task_status"].lower() == "completed"])
@@ -905,19 +1163,27 @@ def generate_full_report(request):
                 total_tasks = len(user_tasks)
                 completion_rate = (completed_count / total_tasks * 100) if total_tasks > 0 else 0
 
-                used_parts = [task.get("task_parts", []) for task in user_tasks if task["task_status"].lower() == "completed"]
-                used_parts_flattened = [part for sublist in used_parts for part in sublist]
+                used_parts_info = []
+                for task in user_tasks:
+                    if task["task_status"].lower() == "completed" and "task_parts" in task:
+                        for part in task["task_parts"]:
+                            used_parts_info.append({
+                                "part_name": part.get("part_name", "Unknown"),
+                                "part_number": part.get("part_number", "Unknown"),
+                                "task_title": task.get("task_title", "Unknown"),
+                                "task_status": task.get("task_status", "Unknown"),
+                                "customer_name": task.get("customer_name", "Unknown"),
+                                "vehicle_name": task.get("vehicle_name", "Unknown"),
+                            })
 
-                user_task_report.append({
-                    "user_id": str(user["_id"]),
+                user_report.append({
                     "full_name": user.get("full_name", "Unknown"),
-                    "email": user.get("email", "Unknown"),
                     "role": user.get("role", "Unknown"),
                     "total_tasks": total_tasks,
                     "pending_tasks": pending_count,
                     "completed_tasks": completed_count,
                     "completion_rate": round(completion_rate, 2),
-                    "used_parts": used_parts_flattened
+                    "used_parts_info": used_parts_info  # ✅ Updated: Parts & Task Info
                 })
 
             # ✅ Task Details with Assigned Users
@@ -925,15 +1191,11 @@ def generate_full_report(request):
             for task in tasks:
                 assigned_user = next((user for user in users if str(user["_id"]) == str(task.get("assigned_user_id"))), None)
                 task_details_report.append({
-                    "task_id": str(task["_id"]),
                     "title": task["task_title"],
-                    "description": task.get("task_description", ""),
                     "status": task["task_status"],
                     "assigned_user": assigned_user["full_name"] if assigned_user else "Unknown",
                     "vehicle_name": task.get("vehicle_name", "Unknown"),
-                    "vehicle_number": task.get("vehicle_number", "Unknown"),
                     "customer_name": task.get("customer_name", "Unknown"),
-                    "check_in_time": task.get("check_in_time", ""),
                     "used_parts": task.get("task_parts", [])
                 })
 
@@ -959,12 +1221,7 @@ def generate_full_report(request):
                     out_of_stock_count += 1
 
                 product_inventory_report.append({
-                    "part_id": str(part["_id"]),
                     "part_name": part["part_name"],
-                    "part_number": part["part_number"],
-                    "vehicle_model": part["vehicle_model"],
-                    "company_name": part["company_name"],
-                    "added_on": part["added_on"],
                     "stock_quantity": part["stock_quantity"],
                     "used_quantity": used_quantity,
                     "remaining_quantity": remaining_quantity,
@@ -982,7 +1239,7 @@ def generate_full_report(request):
 
             # ✅ Final Report Response
             report = {
-                "user_task_report": user_task_report,
+                "user_report": user_report,  # ✅ Updated Key Name
                 "task_details_report": task_details_report,
                 "product_inventory_report": product_inventory_report,
                 "advanced_statistics": {
