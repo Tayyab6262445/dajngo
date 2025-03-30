@@ -480,7 +480,7 @@ def get_all_tasks(request):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-
+    
 
 
 # inventry system of Owner
@@ -555,10 +555,6 @@ def get_inventory_summary(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-
-
 
 # get task wiith parts
 @csrf_exempt
@@ -866,6 +862,146 @@ def get_vehicle_part_by_id(request, part_id):
             part["_id"] = str(part["_id"])
 
             return JsonResponse(part, safe=False)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
+
+
+
+
+
+from django.http import JsonResponse
+from bson import ObjectId
+
+def generate_full_report(request):
+    if request.method == "GET":
+        try:
+            # ✅ Fetch Users (excluding password)
+            users = list(users_collection.find({}, {"password": 0}))
+            total_users = len(users)
+
+            # ✅ Fetch Tasks
+            tasks = list(tasks_collection.find({}))
+            for task in tasks:
+                task.setdefault("task_status", "Unknown")  
+
+            completed_tasks = [task for task in tasks if task["task_status"].lower() == "completed"]
+            pending_tasks = [task for task in tasks if task["task_status"].lower() == "pending"]
+
+            # ✅ Fetch Vehicle Parts
+            parts = list(parts_collection.find({}))
+
+            # ✅ User Performance Metrics
+            user_task_report = []
+            for user in users:
+                user_tasks = [task for task in tasks if str(task.get("assigned_user_id")) == str(user["_id"])]
+                completed_count = len([task for task in user_tasks if task["task_status"].lower() == "completed"])
+                pending_count = len([task for task in user_tasks if task["task_status"].lower() == "pending"])
+                total_tasks = len(user_tasks)
+                completion_rate = (completed_count / total_tasks * 100) if total_tasks > 0 else 0
+
+                used_parts = [task.get("task_parts", []) for task in user_tasks if task["task_status"].lower() == "completed"]
+                used_parts_flattened = [part for sublist in used_parts for part in sublist]
+
+                user_task_report.append({
+                    "user_id": str(user["_id"]),
+                    "full_name": user.get("full_name", "Unknown"),
+                    "email": user.get("email", "Unknown"),
+                    "role": user.get("role", "Unknown"),
+                    "total_tasks": total_tasks,
+                    "pending_tasks": pending_count,
+                    "completed_tasks": completed_count,
+                    "completion_rate": round(completion_rate, 2),
+                    "used_parts": used_parts_flattened
+                })
+
+            # ✅ Task Details with Assigned Users
+            task_details_report = []
+            for task in tasks:
+                assigned_user = next((user for user in users if str(user["_id"]) == str(task.get("assigned_user_id"))), None)
+                task_details_report.append({
+                    "task_id": str(task["_id"]),
+                    "title": task["task_title"],
+                    "description": task.get("task_description", ""),
+                    "status": task["task_status"],
+                    "assigned_user": assigned_user["full_name"] if assigned_user else "Unknown",
+                    "vehicle_name": task.get("vehicle_name", "Unknown"),
+                    "vehicle_number": task.get("vehicle_number", "Unknown"),
+                    "customer_name": task.get("customer_name", "Unknown"),
+                    "check_in_time": task.get("check_in_time", ""),
+                    "used_parts": task.get("task_parts", [])
+                })
+
+            # ✅ Product Inventory & Sales Insights
+            product_inventory_report = []
+            total_revenue = 0
+            total_remaining_price = 0
+            total_sold_parts = 0
+            total_stock_parts = 0
+            out_of_stock_count = 0
+
+            for part in parts:
+                remaining_quantity = max(part["stock_quantity"] - part.get("sold_quantity", 0), 0)
+                used_quantity = part.get("sold_quantity", 0)
+                remaining_price = remaining_quantity * part["price"]
+                sold_price = used_quantity * part["price"]
+
+                total_revenue += sold_price
+                total_remaining_price += remaining_price
+                total_sold_parts += used_quantity
+                total_stock_parts += part["stock_quantity"]
+                if remaining_quantity == 0:
+                    out_of_stock_count += 1
+
+                product_inventory_report.append({
+                    "part_id": str(part["_id"]),
+                    "part_name": part["part_name"],
+                    "part_number": part["part_number"],
+                    "vehicle_model": part["vehicle_model"],
+                    "company_name": part["company_name"],
+                    "added_on": part["added_on"],
+                    "stock_quantity": part["stock_quantity"],
+                    "used_quantity": used_quantity,
+                    "remaining_quantity": remaining_quantity,
+                    "out_of_stock": remaining_quantity == 0,
+                    "original_price": part["orginal_price"],
+                    "price": part["price"],
+                    "remaining_price": remaining_price,
+                    "sold_price": sold_price
+                })
+
+            # ✅ Advanced Metrics
+            task_completion_ratio = (len(completed_tasks) / len(tasks) * 100) if tasks else 0
+            avg_revenue_per_product = total_revenue / total_sold_parts if total_sold_parts else 0
+            out_of_stock_percentage = (out_of_stock_count / len(parts) * 100) if parts else 0
+
+            # ✅ Final Report Response
+            report = {
+                "user_task_report": user_task_report,
+                "task_details_report": task_details_report,
+                "product_inventory_report": product_inventory_report,
+                "advanced_statistics": {
+                    "total_users": total_users,
+                    "total_tasks": len(tasks),
+                    "total_completed_tasks": len(completed_tasks),
+                    "total_pending_tasks": len(pending_tasks),
+                    "task_completion_ratio": round(task_completion_ratio, 2),
+                    "total_revenue_generated": round(total_revenue, 2),
+                    "total_remaining_product_value": round(total_remaining_price, 2),
+                    "total_sold_parts": total_sold_parts,
+                    "total_stock_parts": total_stock_parts,
+                    "out_of_stock_items": out_of_stock_count,
+                    "out_of_stock_percentage": round(out_of_stock_percentage, 2),
+                    "average_revenue_per_product": round(avg_revenue_per_product, 2)
+                }
+            }
+
+            return JsonResponse(report, safe=False, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

@@ -157,12 +157,18 @@ def update_vehicle_part(request, part_id):
                 if field in data:
                     value = data[field]
 
-                    # ✅ Convert `price` & `original_price` to float
+                    # ✅ Convert `price`, `orginal_price`, and `stock_quantity` to numbers
                     if field in ["price", "orginal_price"]:
                         try:
-                            value = float(value)  # Convert to number
+                            value = float(value)  # Convert to float
                         except ValueError:
                             return JsonResponse({"error": f"Invalid number format for {field}"}, status=400)
+
+                    if field == "stock_quantity":
+                        try:
+                            value = int(value)  # Convert to integer
+                        except ValueError:
+                            return JsonResponse({"error": "Invalid number format for stock_quantity"}, status=400)
 
                     update_fields[field] = value
 

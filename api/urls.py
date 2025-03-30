@@ -1,6 +1,5 @@
 from django.urls import path
-from .views import signup, signin,  update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user,get_user_details,get_inventory_summary,get_users_task_summary,get_vehicle_part_by_id,get_all_tasks
-
+from .views import signup, signin,  update_user,get_all_users,create_task,get_tasks_by_user,get_task_by_id,delete_user,update_task,update_task_status,add_task_part,get_user_tasks_with_parts,get_pending_tasks_by_user,get_completed_tasks_by_user,get_user_details,get_inventory_summary,get_users_task_summary,get_vehicle_part_by_id,get_all_tasks,generate_full_report
 urlpatterns = [
     path("signup/", signup, name="signup"),
     path("signin/", signin, name="signin"),
@@ -25,6 +24,10 @@ urlpatterns = [
      
      
      path('get_users_task_summary/', get_users_task_summary, name='get_users_task_summary'),
+
+
+
+       path('full-report/', generate_full_report, name='generate_full_report'),
 
 
 
