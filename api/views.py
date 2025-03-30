@@ -457,7 +457,66 @@ def create_task(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
+# add part to task 
+# @csrf_exempt
+# def add_task_part(request, task_id):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             part_id = data.get("part_id")
 
+#             if not part_id or not ObjectId.is_valid(part_id):
+#                 return JsonResponse({"error": "Invalid part ID format"}, status=400)
+
+#             if not ObjectId.is_valid(task_id):
+#                 return JsonResponse({"error": "Invalid task ID format"}, status=400)
+
+#             task = tasks_collection.find_one({"_id": ObjectId(task_id)})
+#             if not task:
+#                 return JsonResponse({"error": "Task not found"}, status=404)
+
+#             part = db["vehicle_parts"].find_one({"_id": ObjectId(part_id)})
+#             if not part:
+#                 return JsonResponse({"error": "Part not found"}, status=404)
+
+#             if part.get("stock_quantity", 0) <= 0:
+#                 return JsonResponse({"error": "Insufficient stock for this part"}, status=400)
+
+#             # Add part to task
+#             tasks_collection.update_one(
+#                 {"_id": ObjectId(task_id)},
+#                 {"$push": {"task_parts": {
+#                     "part_id": str(part["_id"]),
+#                     "part_name": part["part_name"],
+#                     "part_price": part["price"],
+#                     "company_name": part["company_name"],
+#                     "vehicle_model": part["vehicle_model"],
+#                     "part_number": part["part_number"],
+#                     "added_on": part["added_on"]
+#                 }}}
+#             )
+
+#             # Decrease stock & increase sold count
+#             db["vehicle_parts"].update_one(
+#                 {"_id": ObjectId(part_id)},
+#                 {"$inc": {"stock_quantity": -1, "sold_quantity": 1}}
+#             )
+
+#             return JsonResponse({
+#                 "message": "Part added successfully!",
+#                 "task_id": task_id,
+#                 "added_part": {
+#                     "part_id": str(part["_id"]),
+#                     "part_name": part["part_name"],
+#                     "part_price": part["price"],
+#                     "remaining_stock": part["stock_quantity"] - 1
+#                 }
+#             }, status=200)
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+#     return JsonResponse({"error": "Method not allowed"}, status=405)
 @csrf_exempt
 def add_task_part(request, task_id):
     if request.method == "POST":
@@ -479,7 +538,10 @@ def add_task_part(request, task_id):
             if not part:
                 return JsonResponse({"error": "Part not found"}, status=404)
 
-            if part.get("stock_quantity", 0) <= 0:
+            # ✅ Ensure stock_quantity is treated as an integer
+            stock_quantity = int(part.get("stock_quantity", 0))  
+
+            if stock_quantity <= 0:
                 return JsonResponse({"error": "Insufficient stock for this part"}, status=400)
 
             # Add part to task
@@ -488,11 +550,11 @@ def add_task_part(request, task_id):
                 {"$push": {"task_parts": {
                     "part_id": str(part["_id"]),
                     "part_name": part["part_name"],
-                    "part_price": part["price"],
-                    "company_name": part["company_name"],
-                    "vehicle_model": part["vehicle_model"],
-                    "part_number": part["part_number"],
-                    "added_on": part["added_on"]
+                    "part_price": float(part["price"]),  # ✅ Ensure price is a float
+                    "company_name": part.get("company_name", "Unknown"),
+                    "vehicle_model": part.get("vehicle_model", "Unknown"),
+                    "part_number": part.get("part_number", "N/A"),
+                    "added_on": part.get("added_on", "N/A")
                 }}}
             )
 
@@ -508,15 +570,19 @@ def add_task_part(request, task_id):
                 "added_part": {
                     "part_id": str(part["_id"]),
                     "part_name": part["part_name"],
-                    "part_price": part["price"],
-                    "remaining_stock": part["stock_quantity"] - 1
+                    "part_price": float(part["price"]),  # ✅ Ensure float
+                    "remaining_stock": stock_quantity - 1
                 }
             }, status=200)
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except ValueError:
+            return JsonResponse({"error": "Invalid stock quantity format in database"}, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 
 
 
